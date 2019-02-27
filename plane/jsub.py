@@ -34,6 +34,6 @@ jsubf.close()
 if os.path.exists(dest+".root"):
 	c=1
 else:
-	os.system("qsub -l nodes=1:ppn=1,mem=3gb,walltime=00:55:00 "+jsub+"/"+tag+".pbs")
+	os.system("qsub -l nodes=1:ppn=1,mem=3gb,walltime=00:5:00 "+jsub+"/"+tag+".pbs")
 							
 

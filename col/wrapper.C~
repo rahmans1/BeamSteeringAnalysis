@@ -1,0 +1,33 @@
+#include "ROOT/RMakeUnique.hxx"
+#include "TString.h"
+#include "TROOT.h"
+#include "TChain.h"
+#include "TFileCollection.h"
+#include "TH1F.h"
+#include "TTreeReader.h"
+#include "ROOT/TTreeProcessorMP.hxx"
+
+
+
+int wrapper(){
+
+TChain* T=new TChain("T");
+T->Add("/global/scratch/rahmans/scratch/beamStudy/beamUpstreamR0.0/beam/beam_1.root");
+
+
+gROOT->SetBatch(kTRUE);
+TString selectorPath="/home/rahmans/analysis/analyse_col/processD.C+";
+auto sel=TSelector::GetSelector(selectorPath);
+sel->SetOption("/home/rahmans/analysis/analyse_col/default.txt,default");
+
+ROOT::TTreeProcessorMP pool(4);
+
+pool.Process(*T,*sel);
+sel->GetOutputList()->Delete();
+
+//T->Process("/home/rahmans/analysis/analyse_col/processD.C+","/home/rahmans/analysis/analyse_col/default.txt,default");
+
+return 0;
+}
+
+

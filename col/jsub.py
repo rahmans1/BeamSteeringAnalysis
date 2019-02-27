@@ -6,8 +6,8 @@ src=sys.argv[2]
 
 
 
-jsub="/home/rahmans/analysis/analyse_col/jsub"
-dest="/home/rahmans/analysis/analyse_col/"+tag+".txt"
+jsub="/home/rahmans/analysis/BeamSteeringAnalysis/col/jsub"
+dest="/home/rahmans/analysis/BeamSteeringAnalysis/col/"+tag+".txt"
 tmp="/global/scratch/rahmans/tmp/beam_analysis"
 
 jsubf=open(jsub+"/"+tag+".pbs", "w")
@@ -34,6 +34,6 @@ jsubf.close()
 if os.path.exists(dest+".root"):
 	c=1
 else:
-	os.system("qsub -l nodes=1:ppn=4,pmem=2gb,walltime=00:55:00 "+jsub+"/"+tag+".pbs")
+	os.system("qsub -l nodes=1:ppn=4,pmem=2gb,walltime=00:5:00 "+jsub+"/"+tag+".pbs")
 							
 

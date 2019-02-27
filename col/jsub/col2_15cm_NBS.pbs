@@ -3,7 +3,7 @@
 #PBS -o /global/scratch/rahmans/tmp/beam_analysis/col2_15cm_NBS.out
 #PBS -e /global/scratch/rahmans/tmp/beam_analysis/col2_15cm_NBS.err
 # Script for running sensitivity analysis
-cd /home/rahmans/analysis/analyse_col/jsub/../
+cd /home/rahmans/analysis/BeamSteeringAnalysis/coljsub/../
 echo "Current working directory is `pwd`"
 echo "Node file: $PBS_NODEFILE:"
 echo "-----------------------------"
@@ -14,5 +14,5 @@ echo "Running on $CORES cores."
 echo "Starting run at: `date`"
 module load root-cern/6.14.04-gcc52
 export OMP_NUM_THREADS=$CORES
-python processD.py "/global/scratch/rahmans/scratch/beamStudy/beamUpstreamR0.0/col2_15cm/50k/beam_NBS_50k.root" "/home/rahmans/analysis/analyse_col/col2_15cm_NBS.txt" "col2_15cm_NBS" 
+python processD.py "/global/scratch/rahmans/scratch/beamStudy/beamUpstreamR0.0/col2_15cm/50k/beam_NBS_50k.root" "/home/rahmans/analysis/BeamSteeringAnalysis/colcol2_15cm_NBS.txt" "col2_15cm_NBS" 
 echo "Program analysis finished with exit code $? at: `date`"

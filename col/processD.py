@@ -10,19 +10,19 @@ ch.Add(sys.argv[1])
 
 
 
-selectorPath = "/home/rahmans/analysis/analyse_col/processD.C+"
-sel = R.TSelector.GetSelector(selectorPath);
-sel.SetOption(sys.argv[2]+","+sys.argv[3])
-print("selector used is: "+ selectorPath+" with option "+sel.GetOption()) 
+#selectorPath = "/home/rahmans/analysis/BeamSteeringAnalysis/colprocessD.C+"
+#sel = R.TSelector.GetSelector(selectorPath);
+#sel.SetOption(sys.argv[2]+","+sys.argv[3])
+#print("selector used is: "+ selectorPath+" with option "+sel.GetOption()) 
 
-pool=R.TTreeProcessorMP(4)
+#pool=R.TTreeProcessorMP(4)
 
-pool.Process(ch, sel, "T",4,0);
+#pool.Process(ch, sel, "T",4,0);
 #sel.GetOutputList().Delete();
-"""
 
 
 
-ch.Process("/home/rahmans/analysis/analyse_col/processD.C+",sys.argv[2]+","+sys.argv[3])
 
-"""
+ch.Process("/home/rahmans/analysis/BeamSteeringAnalysis/col/processD.C+",sys.argv[2]+","+sys.argv[3])
+
+

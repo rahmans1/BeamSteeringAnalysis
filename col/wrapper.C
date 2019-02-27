@@ -14,18 +14,18 @@ int wrapper(){
 TChain* T=new TChain("T");
 T->Add("/global/scratch/rahmans/scratch/beamStudy/beamUpstreamR0.0/beam/beam_1.root");
 
-
+/*
 gROOT->SetBatch(kTRUE);
-TString selectorPath="/home/rahmans/analysis/analyse_col/processD.C";
+TString selectorPath="/home/rahmans/analysis/BeamSteeringAnalysis/colprocessD.C";
 auto sel=TSelector::GetSelector(selectorPath);
-sel->SetOption("/home/rahmans/analysis/analyse_col/default.txt,default");
+sel->SetOption("/home/rahmans/analysis/BeamSteeringAnalysis/coldefault.txt,default");
 
 ROOT::TTreeProcessorMP pool(4);
 
 pool.Process(*T,*sel);
 //sel->GetOutputList()->Delete();
-
-//T->Process("/home/rahmans/analysis/analyse_col/processD.C+","/home/rahmans/analysis/analyse_col/default.txt,default");
+*/
+T->Process("/home/rahmans/analysis/BeamSteeringAnalysis/col/processD.C+","/home/rahmans/analysis/BeamSteeringAnalysis/col/default.txt,default");
 
 return 0;
 }

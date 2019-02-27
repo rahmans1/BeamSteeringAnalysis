@@ -6,8 +6,8 @@ src=sys.argv[2]
 
 
 
-jsub="/home/rahmans/analysis/analyse/jsub"
-dest="/home/rahmans/analysis/analyse/"+tag+".txt"
+jsub="/home/rahmans/analysis/BeamSteeringAnalysis/plane/jsub"
+dest="/home/rahmans/analysis/BeamSteeringAnalysis/plane/"+tag+".txt"
 tmp="/global/scratch/rahmans/tmp/beam_analysis"
 
 jsubf=open(jsub+"/"+tag+".pbs", "w")

@@ -31,10 +31,13 @@
 #include <TCanvas.h>
 #include <iostream>
 
+std::vector<TH1F*> e_in;
+std::vector<TH1F*> e_in_det;
 
 std::vector<TH2F*> xy1k;
 std::vector<TH2F*> xy1h;
 std::vector<TH2F*> xy10;
+
 //TFile* rootFile;
 Int_t nFiles;
 Int_t evPerFile;
@@ -45,7 +48,8 @@ ofstream outfile;
 TString folder;
 TString tag;
 
-
+Int_t numr;
+Float_t maxr;
 
 void processD::Begin(TTree * /*tree*/)
 {
@@ -57,17 +61,23 @@ void processD::Begin(TTree * /*tree*/)
    TObjArray *opt= option.Tokenize(",");
    folder=((TObjString *)(opt->At(0)))->String();
    tag= ((TObjString *)(opt->At(1)))->String();
-   outfile.open(Form("%s/%s.txt",folder.Data(),tag.Data()));   
+   outfile.open(Form("%s/%s.txt",folder.Data(),tag.Data()));  
+     
    //rootFile=new TFile(((TObjString *)(opt->At(0)))->String() , "update");
+
 
    nFiles=200; // no of runs 
    evPerFile=5000; // event per run
    weight=1.0/(nFiles*evPerFile); // Counts/incident electron gives Hz/uA
    outfile<< weight << "\n";
    energy_cut=1 ; // what is the minimum energy of incident electron you want to look at
+   numr=20;
+   maxr=100.0;
    
-   Int_t nbins={};
    for(int i=24;i<=29;i++){
+        for (int j=0;j<numr;j++){
+        	e_in.push_back(new TH1F(Form("e_in_%i%3.0f",i,j*maxr/numr),Form("e_in_%i%3.0f",i,j*maxr/numr), 1000,0,11000));
+        }
    	xy1k.push_back(new TH2F(Form("xy1k%i",i), Form("xy1k%i",i), 2000, -1000, 1000, 2000, -1000, 1000));
         xy1h.push_back(new TH2F(Form("xy1h%i",i), Form("xy1h%i",i), 200, -100, 100, 200, -100, 100));
         xy10.push_back(new TH2F(Form("xy10%i",i), Form("xy10%i",i), 200, -10, 10, 200, -10, 10));

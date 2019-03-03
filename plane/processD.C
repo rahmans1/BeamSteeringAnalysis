@@ -41,6 +41,8 @@ Int_t evPerFile;
 Double_t weight;
 Int_t energy_cut;
 ofstream outfile;
+
+TString folder;
 TString tag;
 
 
@@ -53,8 +55,9 @@ void processD::Begin(TTree * /*tree*/)
    
    TString option = GetOption();
    TObjArray *opt= option.Tokenize(",");
-   outfile.open(((TObjString *)(opt->At(0)))->String());   
+   folder=((TObjString *)(opt->At(0)))->String();
    tag= ((TObjString *)(opt->At(1)))->String();
+   outfile.open(Form("%s/%s.txt",folder.Data(),tag.Data()));   
    //rootFile=new TFile(((TObjString *)(opt->At(0)))->String() , "update");
 
    nFiles=200; // no of runs 

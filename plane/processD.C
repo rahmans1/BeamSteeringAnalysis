@@ -31,19 +31,19 @@
 #include <TCanvas.h>
 #include <iostream>
 
-std::vector<TH1F*> e_in;
-std::vector<TH1F*> e_in_det;
+std::vector<TH1F*> e_in_all; // 1D energy distribution histograms
+std::vector<TH2F*> xy; // 2D energy weighted rate on radial bins (>1MeV)
+std::vector<TH2F*> xy_all; // 2D energy weighted rate on radial bins
 
-std::vector<TH2F*> xy1k;
-std::vector<TH2F*> xy1h;
-std::vector<TH2F*> xy10;
 
-//TFile* rootFile;
+
 Int_t nFiles;
 Int_t evPerFile;
 Double_t weight;
 Int_t energy_cut;
+
 ofstream outfile;
+TFile* rootfile;
 
 TString folder;
 TString tag;
@@ -62,8 +62,7 @@ void processD::Begin(TTree * /*tree*/)
    folder=((TObjString *)(opt->At(0)))->String();
    tag= ((TObjString *)(opt->At(1)))->String();
    outfile.open(Form("%s/%s.txt",folder.Data(),tag.Data()));  
-     
-   //rootFile=new TFile(((TObjString *)(opt->At(0)))->String() , "update");
+   rootfile=new TFile(Form("%s/%s.root",folder.Data(),tag.Data()) , "update");
 
 
    nFiles=200; // no of runs 
@@ -71,16 +70,17 @@ void processD::Begin(TTree * /*tree*/)
    weight=1.0/(nFiles*evPerFile); // Counts/incident electron gives Hz/uA
    outfile<< weight << "\n";
    energy_cut=1 ; // what is the minimum energy of incident electron you want to look at
-   numr=20;
-   maxr=100.0;
-   
+   numr=20; // number of radial bins for 1D energy plots
+   maxr=100.0; // max radius for 1D energy plots
+
+ 
    for(int i=24;i<=29;i++){
         for (int j=0;j<numr;j++){
-        	e_in.push_back(new TH1F(Form("e_in_%i%3.0f",i,j*maxr/numr),Form("e_in_%i%3.0f",i,j*maxr/numr), 1000,0,11000));
+        	e_in_all.push_back(new TH1F(Form("e_in_all_%i_%g",i,j*maxr/numr),Form("Rate (1/e) vs E_in (MeV), %g<=r<%g (mm)",j*maxr/numr,(j+1)*maxr/numr), 11000,0,11000));
+                xy.push_back(new TH2F(Form("xy_%i_%g",i, j*maxr/numr), "Incident Power (MeV/e/mm^2) [E_in>1MeV]", 200,-100,100,200, -100,100));
+                xy_all.push_back(new TH2F(Form("xy_all_%i_%g",i, j*maxr/numr), "Incident Power (MeV/e/mm^2)", 200, -100, 100, 200, -100, 100));
         }
-   	xy1k.push_back(new TH2F(Form("xy1k%i",i), Form("xy1k%i",i), 2000, -1000, 1000, 2000, -1000, 1000));
-        xy1h.push_back(new TH2F(Form("xy1h%i",i), Form("xy1h%i",i), 200, -100, 100, 200, -100, 100));
-        xy10.push_back(new TH2F(Form("xy10%i",i), Form("xy10%i",i), 200, -10, 10, 200, -10, 10));
+   	
    }
 }
 
@@ -115,10 +115,18 @@ Bool_t processD::Process(Long64_t entry)
    fReader.SetLocalEntry(entry);
    
    for(int i=0;i<hit_det.GetSize();i++){
-        if(hit_det[i]<30&&hit_e[i]>energy_cut){
-		xy1k[hit_det[i]-24]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
-                xy1h[hit_det[i]-24]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
-                xy10[hit_det[i]-24]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
+        if(hit_det[i]<30){
+                for (int j=0;j<numr;j++){
+                        if (hit_r[i]>=j*maxr/numr && hit_r[i]<(j+1)*maxr/numr) {
+                		e_in_all[(hit_det[i]-24)*numr+j]->Fill(hit_e[i], weight);
+				xy_all[(hit_det[i]-24)*numr+j]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
+                                if (hit_e[i]>energy_cut){
+					xy[(hit_det[i]-24)*numr+j]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
+               
+				}
+			}
+                }
+		
         }
    }
 
@@ -143,27 +151,13 @@ void processD::Terminate()
    TCanvas *c=new TCanvas("c","c", 1200,400);
    c->Divide(3,1);
    for(int i=24;i<30;i++){
-        c->cd(1);
-        gPad->SetLogz();
-        gPad->SetRightMargin(0.13);
-	xy1k[i-24]->Draw("colz");
-        xy1k[i-24]->SetMaximum(15); 
-        xy1k[i-24]->SetMinimum(0.001);       
-        outfile<< xy1k[i-24]->Integral() <<"\n";
-        c->cd(2);
-        gPad->SetLogz();
-        gPad->SetRightMargin(0.13);
-	xy1h[i-24]->Draw("colz");
-        xy1h[i-24]->SetMaximum(15);
-        xy1h[i-24]->SetMinimum(0.001);
-	c->cd(3);
-        gPad->SetLogz();
-        gPad->SetRightMargin(0.13);	
-	xy10[i-24]->Draw("colz");
-        xy10[i-24]->SetMaximum(5);
-        xy10[i-24]->SetMinimum(0.001);
-        c->Print(Form("%s%i.png",tag.Data(),i));
+        for (int j=0;j<numr;j++){
+               	e_in_all[(i-24)*numr+j]->Write("",TObject::kOverwrite);
+                xy_all[(i-24)*numr+j]->Write("",TObject::kOverwrite);
+		xy[(i-24)*numr+j]->Write("",TObject::kOverwrite);
+        }
    }
+   rootfile->Close();
    // The Terminate() function is the last function to be called during
    // a query. It always runs on the client, it can be used to present
    // the results graphically or save the results to file.

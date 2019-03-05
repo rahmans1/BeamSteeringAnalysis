@@ -24,7 +24,6 @@
 // root> T->Process("processD.C+")
 //
 
-
 #include "processD.h"
 #include <TH2.h>
 #include <TStyle.h>
@@ -42,11 +41,15 @@ Int_t evPerFile;
 Double_t weight;
 Int_t energy_cut;
 
-ofstream outfile;
+
+
 TFile* rootfile;
 
 TString folder;
 TString tag;
+TString particle;
+std::map<TString, Int_t> pid;
+
 
 Int_t numr;
 Float_t maxr;
@@ -61,14 +64,23 @@ void processD::Begin(TTree * /*tree*/)
    TObjArray *opt= option.Tokenize(",");
    folder=((TObjString *)(opt->At(0)))->String();
    tag= ((TObjString *)(opt->At(1)))->String();
-   outfile.open(Form("%s/%s.txt",folder.Data(),tag.Data()));  
-   rootfile=new TFile(Form("%s/%s.root",folder.Data(),tag.Data()) , "update");
+   particle=((TObjString *)(opt->At(2)))->String();
+   rootfile=new TFile(Form("%s/%s_%s.root",folder.Data(),tag.Data(),particle.Data()) , "RECREATE");
+   
+   pid["e-"]=11;
+   pid["e+"]=-11;
+   pid["y"]=22;
+   pid["n"]=2112;
+   pid["p"]=2212;
+   pid["pi0"]=111;
+   pid["pi+"]=211;
+   pid["pi-"]=-211;
+
 
 
    nFiles=200; // no of runs 
    evPerFile=5000; // event per run
    weight=1.0/(nFiles*evPerFile); // Counts/incident electron gives Hz/uA
-   outfile<< weight << "\n";
    energy_cut=1 ; // what is the minimum energy of incident electron you want to look at
    numr=20; // number of radial bins for 1D energy plots
    maxr=100.0; // max radius for 1D energy plots
@@ -115,6 +127,7 @@ Bool_t processD::Process(Long64_t entry)
    fReader.SetLocalEntry(entry);
    
    for(int i=0;i<hit_det.GetSize();i++){
+   	if (particle!="all"&& hit_pid[i]!=pid[particle]) {continue;}   //  check if there is a particle cut and impose that cut
         if(hit_det[i]<30){
                 for (int j=0;j<numr;j++){
                         if (hit_r[i]>=j*maxr/numr && hit_r[i]<(j+1)*maxr/numr) {

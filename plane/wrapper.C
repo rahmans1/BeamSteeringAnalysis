@@ -25,7 +25,7 @@ ROOT::TTreeProcessorMP pool(4);
 pool.Process(*T,*sel);
 //sel->GetOutputList()->Delete();
 */
-T->Process("/home/rahmans/analysis/BeamSteeringAnalysis/plane/processD.C+","/home/rahmans/analysis/BeamSteeringAnalysis/plane,default");
+T->Process("/home/rahmans/analysis/BeamSteeringAnalysis/plane/processD.C+","/home/rahmans/analysis/BeamSteeringAnalysis/plane,default,e-");
 
 return 0;
 }

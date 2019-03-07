@@ -22,7 +22,7 @@
 // root> T->Process("processD.C")
 // root> T->Process("processD.C","some options")
 // root> T->Process("processD.C+")
-//
+
 
 #include "processD.h"
 #include <TH2.h>
@@ -31,17 +31,18 @@
 #include <iostream>
 
 std::vector<TH1F*> e_in_all; // 1D energy distribution histograms
-std::vector<TH2F*> xy; // 2D energy weighted rate on radial bins (>1MeV)
-std::vector<TH2F*> xy_all; // 2D energy weighted rate on radial bins
 
+std::vector<TH1F*> r_all; // 1D energy weighted radial profile
 
+std::vector<TH1F*> r; // 1D energy weighted radial profile (>1MeV)
+std::vector<TH2F*> xy_1k; // 2D energy weighted xy-profile (>1MeV)
+std::vector<TH2F*> xy_1h; // 2D energy weighted xy-profile zoom 1 (>1MeV)
+std::vector<TH2F*> xy_10; // 2D energy weighted xy-profile zoom 2 (>1MeV)
 
 Int_t nFiles;
 Int_t evPerFile;
 Double_t weight;
 Int_t energy_cut;
-
-
 
 TFile* rootfile;
 
@@ -49,7 +50,6 @@ TString folder;
 TString tag;
 TString particle;
 std::map<TString, Int_t> pid;
-
 
 Int_t numr;
 Float_t maxr;
@@ -76,8 +76,6 @@ void processD::Begin(TTree * /*tree*/)
    pid["pi+"]=211;
    pid["pi-"]=-211;
 
-
-
    nFiles=200; // no of runs 
    evPerFile=5000; // event per run
    weight=1.0/(nFiles*evPerFile); // Counts/incident electron gives Hz/uA
@@ -87,13 +85,21 @@ void processD::Begin(TTree * /*tree*/)
 
  
    for(int i=24;i<=29;i++){
+
+	r_all.push_back(new TH1F(Form("r_all_%i",i), "Incident Power (MeV/e/mm)", 100,0, 100));
+
+	r.push_back(new TH1F(Form("r_%i",i), "Incident Power (MeV/e/mm) [E_in>1MeV]", 100,0,100));
+	xy_1k.push_back(new TH2F(Form("xy_1k_%i",i), "Incident Power (MeV/e/(mm)^2) [E_in>1MeV]", 2000,-1000,1000,2000,-1000,1000));
+        xy_1h.push_back(new TH2F(Form("xy_1h_%i",i), "Incident Power (MeV/e/(mm)^2) [E_in>1MeV]", 200,-100,100,200,-100,100));
+        xy_10.push_back(new TH2F(Form("xy_10_%i",i), "Incident Power (MeV/e/(0.1mm)^2) [E_in>1MeV]", 200,-10,10,200,-10,10));
+
+
         for (int j=0;j<numr;j++){
         	e_in_all.push_back(new TH1F(Form("e_in_all_%i_%g",i,j*maxr/numr),Form("Rate (1/e) vs E_in (MeV), %g<=r<%g (mm)",j*maxr/numr,(j+1)*maxr/numr), 11000,0,11000));
-                xy.push_back(new TH2F(Form("xy_%i_%g",i, j*maxr/numr), "Incident Power (MeV/e/mm^2) [E_in>1MeV]", 200,-100,100,200, -100,100));
-                xy_all.push_back(new TH2F(Form("xy_all_%i_%g",i, j*maxr/numr), "Incident Power (MeV/e/mm^2)", 200, -100, 100, 200, -100, 100));
-        }
-   	
+        }   
+
    }
+
 }
 
 void processD::SlaveBegin(TTree * /*tree*/)
@@ -127,20 +133,26 @@ Bool_t processD::Process(Long64_t entry)
    fReader.SetLocalEntry(entry);
    
    for(int i=0;i<hit_det.GetSize();i++){
+
    	if (particle!="all"&& hit_pid[i]!=pid[particle]) {continue;}   //  check if there is a particle cut and impose that cut
-        if(hit_det[i]<30){
-                for (int j=0;j<numr;j++){
-                        if (hit_r[i]>=j*maxr/numr && hit_r[i]<(j+1)*maxr/numr) {
-                		e_in_all[(hit_det[i]-24)*numr+j]->Fill(hit_e[i], weight);
-				xy_all[(hit_det[i]-24)*numr+j]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
-                                if (hit_e[i]>energy_cut){
-					xy[(hit_det[i]-24)*numr+j]->Fill(hit_x[i],hit_y[i], weight*hit_e[i]);
-               
-				}
+
+	if(hit_det[i]<30) {     // check if the detector is a plane detector
+	
+		r_all[hit_det[i]-24]->Fill(hit_r[i], weight*hit_e[i]);
+        	if (hit_e[i]>energy_cut){
+			r[hit_det[i]-24]->Fill(hit_r[i],weight*hit_e[i]);
+			xy_1k[hit_det[i]-24]->Fill(hit_x[i],hit_y[i],weight*hit_e[i]);
+		        xy_1h[hit_det[i]-24]->Fill(hit_x[i],hit_y[i],weight*hit_e[i]);
+			xy_10[hit_det[i]-24]->Fill(hit_x[i],hit_y[i],weight*hit_e[i]);
+		}
+       		for (int j=0;j<numr;j++){
+                	if (hit_r[i]>=j*maxr/numr && hit_r[i]<(j+1)*maxr/numr) {
+               			e_in_all[(hit_det[i]-24)*numr+j]->Fill(hit_e[i], weight);
 			}
-                }
-		
-        }
+        	}
+	}
+
+   
    }
 
 
@@ -164,10 +176,13 @@ void processD::Terminate()
    TCanvas *c=new TCanvas("c","c", 1200,400);
    c->Divide(3,1);
    for(int i=24;i<30;i++){
+	r_all[i-24]->Write("",TObject::kOverwrite);
+	r[i-24]->Write("",TObject::kOverwrite);
+	xy_1k[i-24]->Write("",TObject::kOverwrite);
+	xy_1h[i-24]->Write("",TObject::kOverwrite);
+	xy_10[i-24]->Write("",TObject::kOverwrite);	
         for (int j=0;j<numr;j++){
                	e_in_all[(i-24)*numr+j]->Write("",TObject::kOverwrite);
-                xy_all[(i-24)*numr+j]->Write("",TObject::kOverwrite);
-		xy[(i-24)*numr+j]->Write("",TObject::kOverwrite);
         }
    }
    rootfile->Close();

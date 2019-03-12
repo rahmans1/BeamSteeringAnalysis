@@ -31,18 +31,20 @@
 #include <iostream>
 
 std::vector<TH1F*> e_in_all; // 1D energy distribution histograms
-
 std::vector<TH1F*> r_all; // 1D energy weighted radial profile
+std::vector<TH1F*> r; // 1D energy weighted radial profile (>energy_cut)
 
-std::vector<TH1F*> r; // 1D energy weighted radial profile (>1MeV)
-std::vector<TH2F*> xy_1k; // 2D energy weighted xy-profile (>1MeV)
-std::vector<TH2F*> xy_1h; // 2D energy weighted xy-profile zoom 1 (>1MeV)
-std::vector<TH2F*> xy_10; // 2D energy weighted xy-profile zoom 2 (>1MeV)
+std::vector<TH2F*> xy_1k; // 2D energy weighted xy-profile (>energy_cut)
+std::vector<TH2F*> xy_1h; // 2D energy weighted xy-profile zoom 1 (>energy_cut)
+std::vector<TH2F*> xy_10; // 2D energy weighted xy-profile zoom 2 (>energy_cut)
 
-Int_t nFiles;
-Int_t evPerFile;
-Double_t weight;
-Int_t energy_cut;
+std::vector<TH2F*> zx; // 2D energy deposit weighted
+std::vector<TH2F*> zxv; // Source of the deposited energy
+
+Int_t nFiles;             // no of files
+Int_t evPerFile;          // no of events per file
+Double_t weight;          // weight=1/(nFiles*evPerFile)
+Int_t energy_cut;         // in this particular case we take energy_cut=1 MeV
 
 TFile* rootfile;
 
@@ -50,6 +52,8 @@ TString folder;
 TString tag;
 TString particle;
 std::map<TString, Int_t> pid;
+
+std::map<Int_t,Int_t> detIn;     // Mapping collimator coil det ids to an array index
 
 Int_t numr;
 Float_t maxr;
@@ -76,13 +80,34 @@ void processD::Begin(TTree * /*tree*/)
    pid["pi+"]=211;
    pid["pi-"]=-211;
 
+
+   detIn[2001]=0; 
+   detIn[2006]=1;
+   detIn[2002]=2; 
+   detIn[2004]=3; 
+   detIn[2005]=4; 
+   for (int i=4001;i<=4007;i++) detIn[i]=5; 
+   for (int i=3001;i<=3014;i++) detIn[i]=6;
+   detIn[30]=7; 
+   Float_t startz[8]={5100, 5100,5800,8200,12790,6000,8000, 17900};
+   Float_t endz[8]= {5700,5400,6000,8400,12890,8000, 18000,29000};
+   Float_t startx[8]={-800,-800,-800,-800,-800, -800,-800,-1200};
+   Float_t endx[8]={800,800,800,800,800,800,800,1200};
+   char part[8][16]={"col1","col1fin","col2","col4","col5","ucoil","dcoil","bpipe"};
+   
+
    nFiles=200; // no of runs 
    evPerFile=5000; // event per run
    weight=1.0/(nFiles*evPerFile); // Counts/incident electron gives Hz/uA
    energy_cut=1 ; // what is the minimum energy of incident electron you want to look at
    numr=20; // number of radial bins for 1D energy plots
    maxr=100.0; // max radius for 1D energy plots
-
+  
+   
+   for(int j=0;j<8;j++){
+   	zx.push_back(new TH2F(Form("zx_%s",part[j]), "Power Dep(MeV/e/(mm)^2)" , (int)(endz[j]-startz[j]), startz[j], endz[j],  (int)(endx[j]-startx[j]), startx[j], endx[j]));
+        zxv.push_back(new TH2F(Form("zxv_%s",part[j]), "Source Dep(Mev/e/(mm)^2)", 29000, 0, 29000, 2400, -1200, 1200));
+   }
  
    for(int i=24;i<=29;i++){
 
@@ -93,12 +118,14 @@ void processD::Begin(TTree * /*tree*/)
         xy_1h.push_back(new TH2F(Form("xy_1h_%i",i), "Incident Power (MeV/e/(mm)^2) [E_in>1MeV]", 200,-100,100,200,-100,100));
         xy_10.push_back(new TH2F(Form("xy_10_%i",i), "Incident Power (MeV/e/(0.1mm)^2) [E_in>1MeV]", 200,-10,10,200,-10,10));
 
-
         for (int j=0;j<numr;j++){
         	e_in_all.push_back(new TH1F(Form("e_in_all_%i_%g",i,j*maxr/numr),Form("Rate (1/e) vs E_in (MeV), %g<=r<%g (mm)",j*maxr/numr,(j+1)*maxr/numr), 11000,0,11000));
         }   
 
    }
+
+
+
 
 }
 
@@ -150,6 +177,9 @@ Bool_t processD::Process(Long64_t entry)
                			e_in_all[(hit_det[i]-24)*numr+j]->Fill(hit_e[i], weight);
 			}
         	}
+	}else{
+		zx[detIn[hit_det[i]]]->Fill(hit_z[i], hit_x[i], weight*hit_edep[i]);
+                zxv[detIn[hit_det[i]]]->Fill(hit_vz[i], hit_vx[i], weight*hit_edep[i]);
 	}
 
    
@@ -170,11 +200,12 @@ void processD::SlaveTerminate()
 
 void processD::Terminate()
 {
-   gStyle->SetOptStat(0);
-  // gStyle->SetContour(100);
-   gStyle->SetPalette(53);
-   TCanvas *c=new TCanvas("c","c", 1200,400);
-   c->Divide(3,1);
+   
+   for(int j=0;j<8;j++){
+   	zx[j]->Write("",TObject::kOverwrite);
+        zxv[j]->Write("",TObject::kOverwrite);
+   }
+
    for(int i=24;i<30;i++){
 	r_all[i-24]->Write("",TObject::kOverwrite);
 	r[i-24]->Write("",TObject::kOverwrite);
@@ -182,12 +213,12 @@ void processD::Terminate()
 	xy_1h[i-24]->Write("",TObject::kOverwrite);
 	xy_10[i-24]->Write("",TObject::kOverwrite);	
         for (int j=0;j<numr;j++){
-               	e_in_all[(i-24)*numr+j]->Write("",TObject::kOverwrite);
+        	e_in_all[(i-24)*numr+j]->Write("",TObject::kOverwrite);
         }
    }
+
    rootfile->Close();
    // The Terminate() function is the last function to be called during
    // a query. It always runs on the client, it can be used to present
    // the results graphically or save the results to file.
-
 }
